@@ -50,10 +50,6 @@ class InputValidatorFlow(Flow[ArticleState]):
             agent_keys=["abstract_writer"],
             task_keys=["generate_abstract_task"]
             )
-        
-        import pdb
-        pdb.set_trace()
-
         output = crew.kickoff(
             inputs={"title": self.state.title}
             )
@@ -94,10 +90,6 @@ class InputValidatorFlow(Flow[ArticleState]):
             "structure": self.state.structure
         })
         logger.info(f"✅ Crew completata, output : {result.__dict__['raw']}")
-
-        import pdb
-        pdb.set_trace()
-
         self.state.structure = InputValidatorFlow.safe_literal_list_parse(result.__dict__['raw'])
         return self.state.structure
 
