@@ -1,0 +1,56 @@
+write_task:
+  description: >
+    Scrivi la sezione '{section}' per l’articolo intitolato '{title}' e avente abstract '{abstract}'.
+    Mantieni coerenza con le sezioni precedenti, riassunte in:
+    {previous_sections_summary}
+
+    Se ritieni utile includere codice Python, aggiungi in fondo una riga che inizia con:
+    [CODICE_RICHIESTO][START] istruzione dettagliata in linguaggio naturale. [END]
+
+  expected_output: >
+    Testo ben scritto della sezione, eventualmente seguito dal codice richiesto:
+    [CODICE_RICHIESTO][START] istruzione [END]
+
+  agent: "writer"
+  type: "writing"
+  markdown: false
+  human_input: false
+
+generate_code_task:
+  description: >
+    Sulla base della seguente istruzione testuale:
+    "{instruction}"
+    genera o modifica il codice Python completo, ben strutturato e commentato. Non spiegare il codice: restituiscilo come puro blocco di codice eseguibile.
+    Se non ricevi istruzioni restituisci una stringa vuota ''
+
+  expected_output: >
+    Codice Python formattato e pronto all'esecuzione. Non includere alcun testo descrittivo.
+
+  agent: "code_writer"
+  type: "code_generation"
+  markdown: true
+  human_input: false
+
+review_code_task:
+  description: >
+    Revisiona il seguente codice Python:
+
+    ```python
+    {code}
+    ```
+
+    Analizza:
+    - correttezza funzionale
+    - presenza di bug logici
+    - leggibilità e aderenza alle best practice
+    - presenza di docstring o commenti
+
+    Rispondi esclusivamente con una versione migliorata del codice.
+
+  expected_output: >
+    Codice corretto (se necessario).
+
+  agent: "code_reviewer"
+  type: "code_review"
+  markdown: true
+  human_input: false

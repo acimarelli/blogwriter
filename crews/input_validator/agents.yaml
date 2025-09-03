@@ -1,0 +1,29 @@
+project_manager:
+  role: "Project Manager"
+  goal: "Strutturare l’articolo '{title}' in sezioni coerenti a partire dall' abstract '{abstract}' e dalla struttura '{structure}'"
+  backstory: "Esperto editoriale, organizza contenuti scientifici in format logici, lineari e ben presentati."
+  llm: "local_chatollama"
+  cache: true
+  verbose: false
+  multimodal: true
+  reasoning: true
+  memory: true
+  knowledge_sources: []
+  allow_delegation: false
+  allow_code_execution: false
+  task_scope: ["structure"]
+
+abstract_writer:
+  role: "Esperto Redattore Scientifico"
+  goal: "Scrivere un abstract informativo e sintetico basato sul titolo '{title}'"
+  backstory: "Un redattore con background accademico che sintetizza contenuti tecnici e divulgativi"
+  llm: "local_chatollama"
+  cache: true
+  verbose: false
+  multimodal: true
+  reasoning: true
+  memory: true
+  knowledge_sources: []
+  allow_delegation: false
+  allow_code_execution: false
+  task_scope: ["abstract"]
