@@ -5,17 +5,33 @@ import importlib
 import inspect
 from typing import Dict
 from crewai import Agent, Task, Crew, Process
+from pathlib import Path
 
-sys.path.insert(0, '/Users/alessandro.cimarelli/Downloads/blogwriter')
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.append(str(ROOT_DIR))
 
 from llm.ollama_llm_tool import OllamaLLMTool
-from llm.code_llm_tool import CodeLLMTool
-from llm.code_commentator_tool import CodeCommentatorTool
 
-AGENT_REGISTRY = {
-    "local_chatollama": OllamaLLMTool(model='ollama/gpt-oss:20b'),
-    "code_llm": CodeLLMTool(model='ollama/deepseek-coder:33b'),
-    "code_comment_llm": CodeCommentatorTool(model='ollama/deepseek-coder:33b')
+DEFAULT_AGENT_REGISTRY = {
+    "local_chatollama": OllamaLLMTool(model='ollama/gpt-oss:20b',
+                                      temperature=0.7,
+                                      top_p=0.9,
+                                      top_k=60,
+                                      repeat_penalty=1.1,
+                                      num_ctx=4096),
+    "code_llm": OllamaLLMTool(model='ollama/deepseek-coder:33b',
+                              temperature=0.2,
+                              top_p=0.8,
+                              top_k=50,
+                              repeat_penalty=1.1,
+                              num_ctx=4096),
+    "code_comment_llm": OllamaLLMTool(model='ollama/gemma3:27b',
+                                      temperature=0.4,
+                                      top_p=0.9,
+                                      top_k=50,
+                                      repeat_penalty=1.1,
+                                      num_ctx=4096)
 }
 
 def load_yaml(path: str) -> Dict:
@@ -43,14 +59,32 @@ def load_tools(agents_yaml_path: str):
             print(f"Errore caricando il tool {tool}: {e}")
     return tools_registry
 
-def build_agents_from_yaml(agents_path: str, tools_registry: dict = None) -> Dict[str, Agent]:
+def build_agents_from_yaml(agents_path: str, tools_registry: dict = None, agent_registry: dict = None) -> Dict[str, Agent]:
+    """Build agents from a YAML configuration.
+
+    Parameters
+    ----------
+    agents_path: str
+        Path to the YAML file defining the agents.
+    tools_registry: dict, optional
+        Mapping of tool names to tool instances available to the agents.
+    agent_registry: dict, optional
+        Mapping of LLM identifiers to LLM tool instances. If ``None`` the
+        :data:`DEFAULT_AGENT_REGISTRY` is used.
+
+    Returns
+    -------
+    Dict[str, Agent]
+        Dictionary of instantiated agents keyed by their identifiers.
+    """
     raw_agents = load_yaml(agents_path)
     agents = {}
     tools_registry = tools_registry or {}
+    agent_registry = agent_registry or DEFAULT_AGENT_REGISTRY
 
     for key, data in raw_agents.items():
         tools = [tools_registry[t] for t in data.get("tools", []) if t in tools_registry]
-        llm = AGENT_REGISTRY.get(data.get("llm", "local_chatollama"))
+        llm = agent_registry.get(data.get("llm", "local_chatollama"))
         llm_obj = getattr(llm, "llm", llm)
 
         agents[key] = Agent(
@@ -113,8 +147,29 @@ def build_crew(agents: dict, tasks: dict, agent_keys: list[str], task_keys: list
         
     )
 
-def load_agent_and_task_from_yaml(agent_id: str, task_id: str, agents_path: str, tasks_path: str):
+def load_agent_and_task_from_yaml(agent_id: str, task_id: str, agents_path: str, tasks_path: str, agent_registry: dict = None):
+    """Load a single agent and task from YAML files.
+
+    Parameters
+    ----------
+    agent_id: str
+        Identifier of the agent to load.
+    task_id: str
+        Identifier of the task to load.
+    agents_path: str
+        Path to the YAML file defining agents.
+    tasks_path: str
+        Path to the YAML file defining tasks.
+    agent_registry: dict, optional
+        Custom mapping of LLM identifiers to LLM tool instances. If ``None`` the
+        :data:`DEFAULT_AGENT_REGISTRY` is used.
+
+    Returns
+    -------
+    tuple[Agent, Task]
+        The instantiated agent and task corresponding to the provided identifiers.
+    """
     tools = load_tools(agents_path)
-    agents = build_agents_from_yaml(agents_path, tools)
+    agents = build_agents_from_yaml(agents_path, tools, agent_registry)
     tasks = build_tasks_from_yaml(tasks_path, agents)
     return agents[agent_id], tasks[task_id]
