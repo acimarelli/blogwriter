@@ -2,12 +2,14 @@ import ast
 from typing import Optional
 import json
 import re
+from pathlib import Path
 
 from crewai.flow import Flow, start, router, listen, or_
 from schema.state import ArticleState
 from utils.logger import get_logger, summarize_log_metrics
 from utils.config_loader import build_crew
 from utils.context_summarizer_crew import summarize_section
+from logging.handlers import RotatingFileHandler
 
 logger = get_logger("WritingArticleFlow")
 
@@ -101,7 +103,7 @@ class WritingArticleFlow(Flow[ArticleState]):
             task_keys=["review_code_task"]
         )
 
-        logger.info(f"📝 Modifiche al codice: {self.state.code_snippets[self.state.structure[self.state.current_section_index]]}")
+        logger.info(f"📝 Modifiche al codice...")
         result = coding_review_crew.kickoff(inputs={
             "code": self.state.code_snippets[self.state.structure[self.state.current_section_index]]
             })
@@ -117,6 +119,18 @@ class WritingArticleFlow(Flow[ArticleState]):
     @listen("end_article_writing")
     def conclude(self):
         logger.info("🏁 Flow terminato con successo.")
+        
+        # Analisi log
+        try:
+            log_dir = Path(__file__).resolve().parent.parent.parent / "logs"
+            log_file = next(
+                h.baseFilename for h in logger.handlers if isinstance(h, RotatingFileHandler)
+            )
+            summary = summarize_log_metrics(log_file)
+            self.state.log_summary = summary
+            logger.info(f"📊 Riepilogo log: {summary}")
+        except Exception as e:
+            logger.warning(f"⚠️ Impossibile generare metriche log: {e}")
         return self.state
 
     @staticmethod

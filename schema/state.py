@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 class ArticleState(BaseModel):
     # INPUT PRIMARI
@@ -24,3 +24,4 @@ class ArticleState(BaseModel):
     # METADATA AGGIUNTIVI
     sources: List[str] = Field(default_factory=list, description="Link e riferimenti utilizzati nella ricerca")
     logs: List[str] = Field(default_factory=list, description="Log di sistema/testo grezzo intermedio")
+    log_summary: Dict[str, Any] = Field(default_factory=dict, description="Metriche sintetiche dei log")

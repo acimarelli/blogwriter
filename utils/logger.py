@@ -41,8 +41,8 @@ def get_logger(name: str = "crew_logger", level: str = "INFO", log_to_file: bool
     handlers = [RichHandler(console=console, rich_tracebacks=True, markup=True, show_time=False)]
 
     if log_to_file:
-        log_dir = Path("logs")
-        log_dir.mkdir(exist_ok=True)
+        log_dir = Path(__file__).resolve().parent.parent / "logs"
+        log_dir.mkdir(exist_ok=True, parents=True)
         file_path = log_dir / f"{name}.log"
         file_handler = RotatingFileHandler(
             filename=file_path,
@@ -70,7 +70,17 @@ def get_logger(name: str = "crew_logger", level: str = "INFO", log_to_file: bool
 
 def summarize_log_metrics(log_path: str) -> dict:
     """
-    Analizza un file di log e restituisce un dizionario con statistiche sintetiche.
+    Analizza un file di log e restituisce statistiche sintetiche.
+
+    Metrics returned:
+        - ``log_lines``: numero totale di righe del file.
+        - ``log_levels``: conteggio per livello di log (INFO, WARNING, ecc.).
+        - ``level_ratio``: percentuale di ogni livello sul totale dei log.
+        - ``transitions``: transizioni di stato del flow rilevate.
+        - ``duration_seconds``: durata tra il primo e l'ultimo timestamp.
+        - ``avg_interval_seconds``: intervallo medio in secondi tra log consecutivi.
+        - ``first_entry`` / ``last_entry``: timestamp iniziale e finale.
+        - ``top_messages``: top 5 messaggi più ricorrenti.
     """
     levels = Counter()
     timestamps = []
@@ -102,11 +112,25 @@ def summarize_log_metrics(log_path: str) -> dict:
                 if transition_match:
                     flow_transitions[transition_match.group(1)] += 1
 
+        total_levels = sum(levels.values())
+        level_ratio = {lvl: (count / total_levels) * 100 for lvl, count in levels.items()} if total_levels else {}
+
+        if len(timestamps) > 1:
+            sorted_ts = sorted(timestamps)
+            intervals = [
+                (t2 - t1).total_seconds() for t1, t2 in zip(sorted_ts, sorted_ts[1:])
+            ]
+            avg_interval = sum(intervals) / len(intervals)
+        else:
+            avg_interval = 0
+
         return {
             "log_lines": len(messages),
             "log_levels": dict(levels),
+            "level_ratio": level_ratio,
             "transitions": dict(flow_transitions),
             "duration_seconds": (max(timestamps) - min(timestamps)).total_seconds() if timestamps else 0,
+            "avg_interval_seconds": avg_interval,
             "first_entry": str(min(timestamps)) if timestamps else None,
             "last_entry": str(max(timestamps)) if timestamps else None,
             "top_messages": Counter(messages).most_common(5)

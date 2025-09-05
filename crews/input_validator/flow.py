@@ -1,14 +1,13 @@
 import ast
 from typing import Optional
-import json
-import ast
-import re
 from typing import List
+from pathlib import Path
 
 from crewai.flow import Flow, start, router, listen, or_
 from schema.state import ArticleState
 from utils.logger import get_logger, summarize_log_metrics
 from utils.config_loader import build_crew
+from logging.handlers import RotatingFileHandler
 
 logger = get_logger("InputValidatorFlow")
 
@@ -102,7 +101,11 @@ class InputValidatorFlow(Flow[ArticleState]):
 
         # Analisi log
         try:
-            summary = summarize_log_metrics(f"logs/{logger.name}.log")
+            log_dir = Path(__file__).resolve().parent.parent.parent / "logs"
+            log_file = next(
+                h.baseFilename for h in logger.handlers if isinstance(h, RotatingFileHandler)
+            )
+            summary = summarize_log_metrics(log_file)
             self.state.log_summary = summary
             logger.info(f"📊 Riepilogo log: {summary}")
         except Exception as e:
