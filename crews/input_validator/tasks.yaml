@@ -1,28 +1,27 @@
 structure_analysis_task:
-  description: >
+  description: |
     A partire dal titolo '{title}' e dall'abstract '{abstract}', restituisci la lista delle sezioni più adatte
     per strutturare l’articolo. L’output deve essere una lista Python di stringhe.
-
     ⚠️ ATTENZIONE:
-    - L’output deve essere ESATTAMENTE una stringa contenente una lista Python, esempio: ```["Introduzione", "Motivazioni", "Tecnologia", "Conclusioni"] ```
+    - L’output deve essere ESATTAMENTE una stringa contenente una lista Python, esempio: ["Introduzione", "Motivazioni", "Tecnologia", "Conclusioni"] 
     - NON includere codice Python, markdown, intestazioni, ragionamenti o commenti.
     - NON restituire dizionari, solo la lista.
-  expected_output: >
-    ``` 
+  expected_output: |
     ["Introduzione", "Motivazioni", "Tecnologia", "Conclusioni"]
-    ```
   inputs:
     - title
     - abstract
     - structure
-  agent: project_manager
+  agent: "project_manager"
 
 
 generate_abstract_task:
-  description: >
+  description: |
     Scrivi un abstract accattivante e informativo per l’articolo intitolato '{title}'.
-  expected_output: >
+  expected_output: |
     Testo dell'abstract, ben scritto e coerente con titolo e struttura.
+  inputs:
+   - title 
   agent: "abstract_writer"
   type: "abstract"
   output_file: null
@@ -31,10 +30,13 @@ generate_abstract_task:
 
 
 modify_abstract_task:
-  description: >
+  description: |
     Scrivi un abstract accattivante e informativo per l’articolo intitolato '{title}' partendo dall'abstract fornito '{abstract}'.
-  expected_output: >
+  expected_output: |
     Testo dell'abstract, ben scritto e coerente con titolo, abstract originale e struttura.
+  inputs:
+    - title
+    - abstract
   agent: "abstract_writer"
   type: "abstract"
   output_file: null

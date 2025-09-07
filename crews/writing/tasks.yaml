@@ -1,15 +1,13 @@
 write_task:
-  description: >
+  description: |
     Scrivi la sezione '{section}' per l’articolo intitolato '{title}' e avente abstract '{abstract}'.
     Mantieni coerenza con le sezioni precedenti, riassunte in:
     {previous_sections_summary}
-
-    Se ritieni utile includere codice Python, aggiungi in fondo una riga che inizia con:
-    [CODICE_RICHIESTO][START] istruzione dettagliata in linguaggio naturale. [END]
-
-  expected_output: >
-    Testo ben scritto della sezione, eventualmente seguito dal codice richiesto:
-    [CODICE_RICHIESTO][START] istruzione [END]
+    Aggiungi la riga [CODICE_RICHIESTO][START] istruzione dettagliata in linguaggio naturale. [END] 
+    solo se ritieni necessario includere codice; altrimenti non aggiungere nulla dopo il testo della sezione.
+  expected_output: |
+    Testo ben scritto della sezione.
+    La riga [CODICE_RICHIESTO][START] istruzione [END] compare solo se è stato richiesto di includere codice.
 
   agent: "writer"
   type: "writing"
@@ -17,14 +15,17 @@ write_task:
   human_input: false
 
 generate_code_task:
-  description: >
+  description: |
     Sulla base della seguente istruzione testuale:
     "{instruction}"
     genera o modifica il codice Python completo, ben strutturato e commentato. Non spiegare il codice: restituiscilo come puro blocco di codice eseguibile.
-    Se non ricevi istruzioni restituisci una stringa vuota ''
-
-  expected_output: >
-    Codice Python formattato e pronto all'esecuzione. Non includere alcun testo descrittivo.
+    Il codice prodotto deve essere racchiuso in un blocco Markdown
+    ```python
+    ...
+    ```
+    Se {instruction} è vuoto, l'agente deve restituire esattamente la stringa vuota ''
+  expected_output: |
+    Un blocco Markdown ```python``` contenente esclusivamente codice Python, senza alcun testo aggiuntivo.
 
   agent: "code_writer"
   type: "code_generation"
@@ -32,7 +33,7 @@ generate_code_task:
   human_input: false
 
 review_code_task:
-  description: >
+  description: |
     Revisiona il seguente codice Python:
 
     ```python
@@ -44,12 +45,12 @@ review_code_task:
     - presenza di bug logici
     - leggibilità e aderenza alle best practice
     - presenza di docstring o commenti
-
+    
     Rispondi esclusivamente con una versione migliorata del codice.
-
+    Rispondi esclusivamente con il codice revisionato, racchiuso in un blocco Markdown ```python ... ```.
   expected_output: >
-    Codice corretto (se necessario).
-
+    Restituisci esclusivamente il codice corretto, racchiuso in un blocco Markdown ```python ... ```, 
+    senza ulteriori spiegazioni.
   agent: "code_reviewer"
   type: "code_review"
   markdown: true
