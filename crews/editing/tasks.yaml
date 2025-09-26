@@ -1,0 +1,32 @@
+edit_article_task:
+  description: |
+    Cura la versione finale dell'articolo in Markdown seguendo questi passaggi:
+    1. Restituisci il titolo fornito '{title}' come intestazione Markdown di primo livello ('# {title}').
+    2. Aggiungi subito dopo una sezione intitolata "Abstract" con un'intestazione Markdown appropriata e inserisci nel paragrafo il testo presente in '{abstract}'.
+    3. Percorri la lista '{structure}' nell'ordine fornito e, per ogni elemento structure[i] (con relativo indice i):
+       - aggiungi structure[i] come intestazione Markdown coerente con la gerarchia dell'articolo;
+       - inserisci il testo corrispondente prelevandolo da paragraphs[structure[i]], mantenendo la formattazione richiesta;
+       - se il testo contiene il marcatore "[CODICE RICHIESTO][START]...[END]", sostituiscilo con code_snippets[structure[i]], racchiudendo il codice in un blocco Markdown chiaramente identificabile durante la lettura dell'articolo.
+    4. Aggiorna progressivamente l'articolo in Markdown così che l'output finale contenga l'intero contenuto ordinato e pronto per la supervisione editoriale.
+  expected_output: |
+    Articolo completo in Markdown con titolo H1, sezione Abstract, paragrafi organizzati secondo '{structure}'' e blocchi di codice sostituiti dai relativi snippet.
+  inputs:
+    - title
+    - abstract
+    - structure
+    - paragraphs
+    - code_snippets
+  agent: "editor"
+  type: "editing"
+  markdown: true
+  human_input: false
+
+supervision_task:
+  description: >
+    Valuta l’articolo finale fornendo un breve report con osservazioni e suggerimenti.
+  expected_output: >
+    Report sintetico di supervisione.
+  agent: "supervisor"
+  type: "supervision"
+  markdown: false
+  human_input: false
