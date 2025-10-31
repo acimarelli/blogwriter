@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from logging.handlers import RotatingFileHandler
 from typing import Any
+from pathlib import Path
 
 from crewai.flow import Flow, listen, start
 
@@ -35,7 +36,6 @@ class EditingFlow(Flow[ArticleState]):
         )
         self.agents = dict(agents)
         self.tasks = dict(tasks)
-        self._export_log_summary = True
 
     @start()
     def edit_article(self) -> ArticleState:
@@ -73,32 +73,22 @@ class EditingFlow(Flow[ArticleState]):
     def conclude(self) -> ArticleState:
         """Registra un riepilogo dei log alla fine del processo di editing."""
         logger.info("🏁 Flow di editing completato con successo.")
-
-        if not self._export_log_summary:
-            logger.debug("Generazione del riepilogo log disattivata per questo run.")
-            return self.state
-
+        # Analisi log
         try:
+            log_dir = Path(__file__).resolve().parent.parent.parent / "logs"
             log_file = next(
-                handler.baseFilename
-                for handler in logger.handlers
-                if isinstance(handler, RotatingFileHandler)
+                h.baseFilename for h in logger.handlers if isinstance(h, RotatingFileHandler)
             )
             summary = summarize_log_metrics(log_file)
             self.state.log_summary = summary
             logger.info(f"📊 Riepilogo log: {summary}")
-        except StopIteration:
-            logger.debug(
-                "Nessun RotatingFileHandler configurato per il logger di editing."
-            )
-        except Exception as exc:  # pragma: no cover - logging fallback
-            logger.warning(f"⚠️ Impossibile generare metriche log: {exc}")
+        except Exception as e:
+            logger.warning(f"⚠️ Impossibile generare metriche log: {e}")
         return self.state
 
     async def run_async(self, export_log_summary: bool = True) -> ArticleState:
         """Avvia il flow in modalità asincrona, restituendo lo stato finale."""
         logger.info("🚀 Avvio asincrono del flow EditingFlow")
-        self._export_log_summary = export_log_summary
         final_state = await self.kickoff_async()
         self.final_state = final_state
         return final_state
