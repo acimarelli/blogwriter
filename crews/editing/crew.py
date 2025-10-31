@@ -24,6 +24,6 @@ class EditingCrew:
             abstract=abstract,
             structure=structure,
             paragraphs=paragraphs,
-            code_snippets=code_snippets,
+            code_snippets=code_snippets
         )
         return await self.flow.run_async()

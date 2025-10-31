@@ -83,6 +83,16 @@ def build_agents_from_yaml(agents_path: str, tools_registry: dict = None, agent_
     agent_registry = agent_registry or DEFAULT_AGENT_REGISTRY
 
     for key, data in raw_agents.items():
+
+        if not isinstance(data, dict):
+            continue
+
+        required_fields = {"role", "goal", "backstory"}
+        if not required_fields.issubset(data):
+            # Skip configuration blocks that are only used as reusable profiles
+            # and therefore do not contain the fields needed to instantiate an agent.
+            continue
+
         tools = [tools_registry[t] for t in data.get("tools", []) if t in tools_registry]
         llm = agent_registry.get(data.get("llm", "local_chatollama"))
         llm_obj = getattr(llm, "llm", llm)

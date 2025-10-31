@@ -1,25 +1,36 @@
-chief_editor:
+common_local_profile: &common_local_profile
+  llm: "local_chatollama"
+  cache: true
+  memory: false
+  reasoning: true
+  allow_delegation: false
+  allow_code_execution: false
+
+editor_profile: &editor_profile
+  <<: *common_local_profile
   role: "Chief Editor"
   goal: "Unire e rifinire i paragrafi in un articolo Markdown finale."
   backstory: "Editor esperto che assicura coerenza e stile."
-  llm: "local_chatollama"
-  cache: true
   verbose: true
-  memory: false
-  reasoning: true
-  allow_delegation: false
-  allow_code_execution: false
   task_scope: ["editing"]
 
+single_paragraph_editor:
+  <<: *editor_profile
+  role: "Paragraph Editor"
+  goal: "Rifinisci un singolo paragrafo mantenendo tono e accuratezza."
+  backstory: "Editor specializzato nella revisione granulare del contenuto."
+  verbose: false
+
+editor:
+  <<: *editor_profile
+
+chief_editor:
+  <<: *editor_profile
+
 supervisor:
+  <<: *common_local_profile
   role: "Content Supervisor"
   goal: "Produrre un breve report di supervisione sull’articolo completo."
   backstory: "Revisore critico che evidenzia miglioramenti possibili."
-  llm: "local_chatollama"
-  cache: true
   verbose: false
-  memory: false
-  reasoning: true
-  allow_delegation: false
-  allow_code_execution: false
   task_scope: ["supervision"]
