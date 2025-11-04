@@ -5,8 +5,9 @@ edit_article_task:
     2. Aggiungi subito dopo una sezione intitolata "Abstract" con un'intestazione Markdown appropriata e inserisci nel paragrafo il testo presente in '{abstract}'.
     3. Percorri la lista '{structure}' nell'ordine fornito e, per ogni elemento structure[i] (con relativo indice i):
       - aggiungi structure[i] come intestazione Markdown coerente con la gerarchia dell'articolo;
-      - inserisci il testo corrispondente prelevandolo da paragraphs[structure[i]], mantenendo la formattazione richiesta;
+      - inserisci il testo corrispondente prelevandolo da paragraphs[structure[i]] senza alcuna rielaborazione, mantenendo la formattazione originale;
       - se il testo contiene il marcatore "[CODICE RICHIESTO][START]...[END]", sostituiscilo con code_snippets[structure[i]], racchiudendo il codice in un blocco Markdown chiaramente identificabile durante la lettura dell'articolo.
+      - se paragraphs[structure[i]] contiene ripetizioni letterali di uno stesso paragrafo consecutivo, elimina le duplicazioni mantenendo una sola occorrenza del testo ripetuto;
     4. Aggiorna progressivamente l'articolo in Markdown così che l'output finale contenga l'intero contenuto ordinato e pronto per la supervisione editoriale.
   expected_output: |
     Articolo completo in Markdown con titolo H1, sezione Abstract, paragrafi organizzati secondo '{structure}' e blocchi di codice sostituiti dai relativi snippet.
