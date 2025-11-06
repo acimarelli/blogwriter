@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from logging.handlers import RotatingFileHandler
 from typing import Any
 from pathlib import Path
@@ -9,6 +10,7 @@ from crewai.flow import Flow, listen, start
 from schema.state import ArticleState
 from utils.config_loader import build_crew
 from utils.logger import get_logger, summarize_log_metrics
+from utils.markdown_utils import MarkdownUtils
 
 logger = get_logger("EditingFlow")
 
@@ -20,52 +22,101 @@ class EditingFlow(Flow[ArticleState]):
         self,
         agents: dict[str, Any],
         tasks: dict[str, Any],
-        title: str,
-        abstract: str,
-        paragraphs: dict[str, str],
-        code_snippets: dict[str, str],
-        structure: list[str],
-    ) -> None:
+        state: ArticleState, 
+        num_reviews: int = 10,
+        write_output: bool = False,
+        markdown_outpath: str | None = None
+    ) -> ArticleState:
         """Inizializza il flow con lo stato dell'articolo da revisionare."""
-        super().__init__(
-            title=title,
-            abstract=abstract,
-            paragraphs=dict(paragraphs),
-            code_snippets=dict(code_snippets),
-            structure=list(structure),
-        )
+        super().__init__(**state.model_dump())
         self.agents = dict(agents)
         self.tasks = dict(tasks)
+        self.num_reviews = num_reviews
+        self.write_output = write_output
+        self.md_outpath = markdown_outpath
 
     @start()
+    def review_article(self):
+        self.state.original_article = MarkdownUtils.generate_markdown(title=self.state.title, abstract=self.state.abstract, 
+                                                           structure=self.state.structure, paragraphs=self.state.paragraphs, 
+                                                           code_snippets=self.state.code_snippets, write_output=False)
+        
+        logger.info("🕵️ Avvio della supervisione editoriale.")
+        for i in range(self.num_reviews):
+            supervision_crew = build_crew(
+                agents=self.agents,
+                tasks=self.tasks,
+                agent_keys=["supervisor"],
+                task_keys=["supervision_task"],
+            )
+
+            result = supervision_crew.kickoff(inputs={"original_article": self.state.original_article})
+            self.state.supervision_report[f"Reviews_{i+1}"] = self._extract_raw_output(result)
+            logger.info(f"Review {i+1}/{self.num_reviews} terminata.")
+
+        return self.state
+    
+    @listen(review_article)
+    def review_consolidator(self):
+        logger.info("🕵️ Avvio consolidamento della supervisione editoriale in unica review.")
+        review_consolidator_crew = build_crew(
+                agents=self.agents,
+                tasks=self.tasks,
+                agent_keys=["review_consolidator"],
+                task_keys=["consolidate_reviews_task"],
+            )
+        
+        result = review_consolidator_crew.kickoff(inputs={
+            "reviews": self.state.supervision_report
+            })
+        self.state.final_revision_report = self._extract_raw_output(result)
+        
+        return self.state
+    
+    @listen(review_consolidator)
+    def final_article_generator(self):
+        logger.info("🚀 Attivo la crew per la generazione della versione finale dell'articolo.")
+
+        section_modifier_crew = build_crew(
+                agents=self.agents,
+                tasks=self.tasks,
+                agent_keys=["editor_profile"],
+                task_keys=["edit_article_task"],
+            )
+        final_review_dict = json.loads(self.state.final_revision_report)
+
+        if final_review_dict.get("Abstract", "") != "":
+            new_abstract_result = section_modifier_crew.kickoff(
+                inputs={
+                    "section_name": "Abstract",
+                    "section_text": self.state.abstract,
+                    "review_text": final_review_dict.get("Abstract", "")
+                    }
+                )
+            self.state.abstract = self._extract_raw_output(new_abstract_result)
+        for section in self.state.structure:
+            if final_review_dict.get(section, "") != "":
+                new_section_result = section_modifier_crew.kickoff(
+                    inputs={
+                        "section_name": section,
+                        "section_text": self.state.paragraphs[section],
+                        "review_text": final_review_dict.get(section, "")
+                        }
+                    )
+                self.state.paragraphs[section] = self._extract_raw_output(new_section_result)
+        
+        return self.state
+    
+    @listen(final_article_generator)
     def edit_article(self) -> ArticleState:
-        """Attiva la crew responsabile dell'editing del contenuto generato."""
-        logger.info("🛠️ Avvio della crew di editing dell'articolo…")
-        editing_crew = build_crew(
-            agents=self.agents,
-            tasks=self.tasks,
-            agent_keys=["editor"],
-            task_keys=["edit_article_task"],
-        )
+        """Attiva l'editing del contenuto generato."""
+        logger.info("🛠️ Avvio dell'editing dell'articolo…")
 
-        result = editing_crew.kickoff(
-            inputs={
-                "title": self.state.title,
-                "abstract": self.state.abstract,
-                "paragraphs": self.state.paragraphs,
-                "code_snippets": self.state.code_snippets,
-                "structure": self.state.structure,
-            }
-        )
-
-        edited_article, supervision_report = self._parse_result(result)
-        self.state.edited_article = edited_article
-        self.state.supervision_report = supervision_report
-
-        if not supervision_report and edited_article:
-            generated_report = self._run_supervision(edited_article)
-            if generated_report:
-                self.state.supervision_report = generated_report
+        self.state.edited_article = MarkdownUtils.generate_markdown(title=self.state.title, abstract=self.state.abstract, 
+                                                                    structure=self.state.structure, paragraphs=self.state.paragraphs, 
+                                                                    code_snippets=self.state.code_snippets, write_output=self.write_output, output_path=self.md_outpath)
+        if self.write_output:
+            logger.info(f"✅ File Markdown generato: {self.state.title.lower().replace(' ', '_').replace('/', '-')}.md")
 
         return self.state
 
@@ -93,31 +144,6 @@ class EditingFlow(Flow[ArticleState]):
         self.final_state = final_state
         return final_state
 
-    def _run_supervision(self, edited_article: str) -> str:
-        """Esegue il task di supervisione se configurato e restituisce il report."""
-        if "supervision_task" not in self.tasks:
-            logger.debug("Task di supervisione non configurato: salto della supervisione.")
-            return ""
-
-        logger.info("🕵️ Avvio della supervisione editoriale.")
-        try:
-            supervision_crew = build_crew(
-                agents=self.agents,
-                tasks=self.tasks,
-                agent_keys=["supervisor"],
-                task_keys=["supervision_task"],
-            )
-
-            supervision_result = supervision_crew.kickoff(
-                inputs={"edited_article": edited_article}
-            )
-        except Exception as exc:  # pragma: no cover - fallback in caso di errori crew
-            logger.warning(f"⚠️ Impossibile completare la supervisione: {exc}")
-            return ""
-
-        raw_report = self._extract_raw_output(supervision_result)
-        return str(raw_report).strip()
-
     @staticmethod
     def _extract_raw_output(result: Any) -> Any:
         """Estrae la rappresentazione grezza dal risultato della crew."""
@@ -126,18 +152,4 @@ class EditingFlow(Flow[ArticleState]):
         if hasattr(result, "__dict__") and "raw" in result.__dict__:
             return result.__dict__["raw"]
         return result
-
-    @staticmethod
-    def _parse_result(result: Any) -> tuple[str, str]:
-        """Interpreta il risultato della crew restituendo testo e supervisione."""
-        raw_output = EditingFlow._extract_raw_output(result)
-
-        if isinstance(raw_output, dict):
-            edited_article = str(raw_output.get("edited_article", "")).strip()
-            supervision_report = str(raw_output.get("supervision_report", "")).strip()
-        else:
-            edited_article = str(raw_output).strip()
-            supervision_report = ""
-
-        return edited_article, supervision_report
 

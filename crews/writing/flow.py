@@ -1,4 +1,5 @@
 import ast
+import os
 from typing import Optional
 import json
 import re
@@ -9,6 +10,7 @@ from schema.state import ArticleState
 from utils.logger import get_logger, summarize_log_metrics
 from utils.config_loader import build_crew
 from utils.context_summarizer_crew import summarize_section
+from utils.markdown_utils import MarkdownUtils
 from logging.handlers import RotatingFileHandler
 
 logger = get_logger("WritingArticleFlow")
@@ -18,11 +20,9 @@ class WritingArticleFlow(Flow[ArticleState]):
     def __init__(self, 
                  agents: dict, 
                  tasks: dict, 
-                 title: str, 
-                 abstract: str, 
-                 structure: list[str]
+                 state: ArticleState
                  ):
-        super().__init__(title=title, abstract=abstract, structure=structure)
+        super().__init__(**state.model_dump())
         self.agents = agents
         self.tasks = tasks
 
@@ -36,9 +36,9 @@ class WritingArticleFlow(Flow[ArticleState]):
         if self.state.current_section_index==len(self.state.structure):
             return "end_article_writing"
         else:
-            return "continue_article_writing"
+            return "article_writing"
 
-    @listen("continue_article_writing")
+    @listen("article_writing")
     def write_section(self): 
         if self.state.current_section_index==0:
             logger.info("🚀 Attivo la crew per la generazione sezioni articolo...")
@@ -94,7 +94,7 @@ class WritingArticleFlow(Flow[ArticleState]):
         return self.state 
     
     @listen(write_code)
-    def upgrade_code(self):
+    def update_code(self):
         logger.info(f"🚀 Attivo la crew per la modifica del codice generato per la sezione {self.state.structure[self.state.current_section_index]}")
         coding_review_crew = build_crew(
             agents=self.agents,
@@ -111,11 +111,11 @@ class WritingArticleFlow(Flow[ArticleState]):
 
         return self.state
 
-    @listen(or_("no_coding_section", upgrade_code))
+    @listen(or_("no_coding_section", update_code))
     def loop_till_last_section(self):
         self.state.current_section_index = self.state.current_section_index + 1
         return "loop_till_last_section"
-    
+
     @listen("end_article_writing")
     def conclude(self):
         logger.info("🏁 Flow terminato con successo.")

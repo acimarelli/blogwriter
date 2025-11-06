@@ -9,8 +9,8 @@ common_local_profile: &common_local_profile
 editor_profile: &editor_profile
   <<: *common_local_profile
   role: "Chief Editor"
-  goal: "Unire e rifinire i paragrafi in un articolo Markdown finale."
-  backstory: "Editor esperto che assicura coerenza e stile."
+  goal: "Applicare i feedback di revisione aggiornando i paragrafi della sezione senza alterare e preservando qualsiasi sequenza '[CODICE RICHIESTO][START]... [END]'"
+  backstory: "Editor esperto nell'interpretare report di revisione e nel trasformarli in testo rifinito, preservando contenuti sensibili."
   verbose: true
   task_scope: ["editing"]
 
@@ -33,4 +33,12 @@ supervisor:
   goal: "Produrre un breve report di supervisione sull’articolo completo."
   backstory: "Revisore critico che evidenzia miglioramenti possibili."
   verbose: false
+  task_scope: ["supervision"]
+
+review_consolidator:
+  <<: *common_local_profile
+  role: "Review Consolidator"
+  goal: "Unificare feedback multipli in un unico report strutturato per sezione."
+  backstory: "Specialista nell'aggregazione di revisioni che individua sovrapposizioni e differenze, restituendo istruzioni puntuali."
+  verbose: true
   task_scope: ["supervision"]

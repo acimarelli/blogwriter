@@ -1,6 +1,7 @@
 # crew.py
 import os
 from crews.input_validator.flow import InputValidatorFlow
+from schema.state import ArticleState
 from utils.config_loader import build_agents_from_yaml, build_tasks_from_yaml
 from pathlib import Path
 
@@ -13,7 +14,7 @@ class InputValidatorCrew:
                  agent_yaml_path: str = os.path.join(config_dir, "agents.yaml"), 
                  task_yaml_path: str = os.path.join(config_dir, "tasks.yaml"),
                  agent_registry: dict | None = None
-                 ):
+                 ) -> ArticleState:
         """Classe di orchestrazione per il flusso di validazione degli input iniziali.
 
         Parameters

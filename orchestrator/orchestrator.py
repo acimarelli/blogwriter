@@ -4,9 +4,15 @@ from pathlib import Path
 
 from crews.input_validator.crew import InputValidatorCrew
 from crews.writing.crew import WritingCrew
+from crews.editing.crew import EditingCrew
 
 
-async def blogwriter_orchestrator(title: str, abstract: str = "", structure: list[str] | None = None):
+async def blogwriter_orchestrator(title: str, 
+                                  abstract: str = "", 
+                                  structure: list[str] | None = None, 
+                                  num_reviews: int = 10,
+                                  write_output: bool = False,
+                                  markdown_outpath: str | None = None):
     """Lancia il flusso di validazione e quello di scrittura."""
     structure = structure or []
 
@@ -23,16 +29,21 @@ async def blogwriter_orchestrator(title: str, abstract: str = "", structure: lis
     )
     validator.flow.plot(filename=str(flow_dir / "InputValidatorFlow"))
 
-    # 2) Scrittura dell’articolo
-    writer = WritingCrew()
-    final_state = await writer.kickoff(
-        title=validated_state.title,
-        abstract=validated_state.abstract,
-        structure=validated_state.structure,
-    )
-    writer.flow.plot(filename=str(flow_dir / "WritingValidatorFlow"))
+    # 2) Scrittura dell’articolo 
+    writer = WritingCrew(state=validated_state)
+    written_state = await writer.kickoff()
+    writer.flow.plot(filename=str(flow_dir / "WritingFlow"))
 
-    return final_state
+    # 3) Review+Editing dell’articolo
+    editor = EditingCrew(state=written_state)
+    editing_state = await editor.kickoff(
+        num_reviews=num_reviews,
+        write_output=write_output,
+        markdown_outpath=markdown_outpath
+    )
+    editor.flow.plot(filename=str(flow_dir / "EditingFlow"))
+
+    return editing_state
 
 
 def main():

@@ -8,6 +8,7 @@ write_task:
   expected_output: |
     Testo ben scritto della sezione.
     La riga [CODICE_RICHIESTO][START] istruzione [END] compare solo se è stato richiesto di includere codice.
+    NB evita di iniziare con il nome **'{section}'** e scrivi solo il contenuto della sezione.
 
   agent: "writer"
   type: "writing"
@@ -35,10 +36,7 @@ generate_code_task:
 review_code_task:
   description: |
     Revisiona il seguente codice Python:
-
-    ```python
     {code}
-    ```
 
     Analizza:
     - correttezza funzionale

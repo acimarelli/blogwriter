@@ -1,22 +1,18 @@
 edit_article_task:
   description: |
-    Cura la versione finale dell'articolo in Markdown seguendo questi passaggi:
-    1. Restituisci il titolo fornito '{title}' come intestazione Markdown di primo livello ('# {title}').
-    2. Aggiungi subito dopo una sezione intitolata "Abstract" con un'intestazione Markdown appropriata e inserisci nel paragrafo il testo presente in '{abstract}'.
-    3. Percorri la lista '{structure}' nell'ordine fornito e, per ogni elemento structure[i] (con relativo indice i):
-      - aggiungi structure[i] come intestazione Markdown coerente con la gerarchia dell'articolo;
-      - inserisci il testo corrispondente prelevandolo da paragraphs[structure[i]] senza alcuna rielaborazione, mantenendo la formattazione originale;
-      - se il testo contiene il marcatore "[CODICE RICHIESTO][START]...[END]", sostituiscilo con code_snippets[structure[i]], racchiudendo il codice in un blocco Markdown chiaramente identificabile durante la lettura dell'articolo.
-      - se paragraphs[structure[i]] contiene ripetizioni letterali di uno stesso paragrafo consecutivo, elimina le duplicazioni mantenendo una sola occorrenza del testo ripetuto;
-    4. Aggiorna progressivamente l'articolo in Markdown così che l'output finale contenga l'intero contenuto ordinato e pronto per la supervisione editoriale.
+    Applica il report di revisione alla sezione indicata seguendo questi passaggi:
+    1. Considera il nome della sezione '{section_name}' per mantenere coerenza con la struttura complessiva dell'articolo.
+    2. Analizza il testo originale fornito in '{section_text}' identificando i passaggi su cui intervenire.
+    3. Leggi attentamente le istruzioni presenti in '{review_text}' e interpreta ogni richiesta di modifica.
+    4. Aggiorna il contenuto di '{section_text}' applicando le modifiche descritte, assicurandoti che tono, stile e coerenza risultino armonizzati.
+    5. Se nel testo è presente il marcatore "[CODICE RICHIESTO][START]... [END]", mantieni invariato il marcatore e l'intero contenuto compreso al suo interno.
+    6. Restituisci esclusivamente il testo rivisto di '{section_text}', pronto per essere reinserito nell'articolo principale.
   expected_output: |
-    Articolo completo in Markdown con titolo H1, sezione Abstract, paragrafi organizzati secondo '{structure}' e blocchi di codice sostituiti dai relativi snippet.
+    Testo aggiornato e coerente della sezione indicata, che recepisce integralmente il report di revisione e preserva eventuali marcatori di codice richiesto.
   inputs:
-    - title
-    - abstract
-    - structure
-    - paragraphs
-    - code_snippets
+    - section_name
+    - section_text
+    - review_text
   agent: "editor"
   type: "editing"
   markdown: true
@@ -24,16 +20,52 @@ edit_article_task:
 
 supervision_task:
   description: |
-    Valuta l’articolo finale riportato di seguito producendo un breve report con osservazioni e suggerimenti di miglioramento.
-
+    Valuta l’articolo finale riportato di seguito producendo un report con osservazioni e suggerimenti di miglioramento.
     ---
-    {edited_article}
+    {original_article}
     ---
   expected_output: |
-    Report sintetico di supervisione che evidenzi punti di forza, debolezze e suggerimenti.
+    Report di supervisione che evidenzi per ogni paragrafo/sezione le modifiche puntuali e precise da effetture. In particolare
+    vorrei che fosse strutturato come un dizionario {<paragraph/section_name>: <modifiche puntuali>}
   inputs:
-    - edited_article
+    - original_article
   agent: "supervisor"
+  type: "supervision"
+  markdown: false
+  human_input: false
+
+
+consolidate_reviews_task:
+  description: |
+    Ricevi in ingresso un dizionario '{reviews}' contenente più report di revisione. Ogni valore può includere testo in formato
+    Markdown, blocchi ```json``` o altre strutture pseudo-JSON (anche con sintassi Python) che descrivono le sezioni
+    dell'articolo e le relative osservazioni.
+
+    Obiettivo:
+      1. Analizza tutte le review disponibili estrapolando le sezioni (Abstract, Introduzione, Motivazioni, Tecnologia, Conclusioni,
+         eventuali sezioni "Overall" o simili) e le singole raccomandazioni associate. Considera sia liste puntate/numerate sia
+         frasi separate da punto e virgola o da numerazione inline.
+      2. Normalizza i nomi delle sezioni rimuovendo differenze di maiuscole/minuscole o suffissi numerici (es. "Introduction_1" →
+         "Introduzione"). Mantieni eventuali categorie generali come "Overall Style & Formatting" o "General Style & Consistency"
+         se presenti.
+      3. Se incontri formati non perfettamente validi (es. dizionari Python, tuple, testo senza virgolette) interpreta comunque le
+         voci e trascrivile come frasi complete nelle raccomandazioni consolidate.
+      4. Produci un'unica lista ordinata di istruzioni puntuali e non ridondanti per ciascuna sezione. Ogni elemento della lista deve
+         essere una frase autonoma, informativa e specifica, pronta per essere applicata dall'autore.
+      5. Includi un breve riferimento alla provenienza quando utile (es. "[review_3]") solo se aiuta a distinguere suggerimenti
+         alternativi o confliggenti.
+      6. Non restituire mai un dizionario vuoto quando nelle review è presente almeno una raccomandazione: se una sezione viene
+         citata anche da una sola review, deve comparire nell'output con almeno una voce sintetizzata.
+
+    Output richiesto: restituisci **esclusivamente** un dizionario JSON serializzabile dove le chiavi corrispondono ai nomi delle
+    sezioni e i valori sono liste ordinate (array JSON) di stringhe con le modifiche consolidate e più dettagliate possibile.
+    Non aggiungere testo libero fuori dal dizionario finale e assicurati che ogni lista contenga almeno una frase.
+  expected_output: |
+    Report di supervisione che evidenzi per ogni paragrafo/sezione le modifiche puntuali e precise da effetture. In particolare
+    vorrei che fosse strutturato come un dizionario {<paragraph/section_name>: <modifiche puntuali>} e che evitassi di usare caratteri quali ` o ”
+  inputs:
+    - reviews
+  agent: "review_consolidator"
   type: "supervision"
   markdown: false
   human_input: false
