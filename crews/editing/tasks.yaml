@@ -3,7 +3,7 @@ edit_article_task:
     Applica il report di revisione alla sezione indicata seguendo questi passaggi:
     1. Considera il nome della sezione '{section_name}' per mantenere coerenza con la struttura complessiva dell'articolo.
     2. Analizza il testo originale fornito in '{section_text}' identificando i passaggi su cui intervenire.
-    3. Leggi attentamente le istruzioni presenti in '{review_text}' e interpreta ogni richiesta di modifica.
+    3. Leggi attentamente le istruzioni presenti in '{review_text}' e interpreta ogni richiesta di modifica attinente esclusivamente alla sezione '{section_name}' e trascura le modifiche attinenti alle altre sezioni.
     4. Aggiorna il contenuto di '{section_text}' applicando le modifiche descritte, assicurandoti che tono, stile e coerenza risultino armonizzati.
     5. Se nel testo è presente il marcatore "[CODICE RICHIESTO][START]... [END]", mantieni invariato il marcatore e l'intero contenuto compreso al suo interno.
     6. Restituisci esclusivamente il testo rivisto di '{section_text}', pronto per essere reinserito nell'articolo principale.

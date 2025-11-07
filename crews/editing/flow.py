@@ -83,24 +83,26 @@ class EditingFlow(Flow[ArticleState]):
                 agent_keys=["editor_profile"],
                 task_keys=["edit_article_task"],
             )
-        final_review_dict = json.loads(self.state.final_revision_report)
+        # final_review_dict = json.loads(self.state.final_revision_report.replace("```json\n", "").replace("```", ""))
 
-        if final_review_dict.get("Abstract", "") != "":
+        # if final_review_dict.get("Abstract", "") != "":
+        if "Abstract" in self.state.final_revision_report:
             new_abstract_result = section_modifier_crew.kickoff(
                 inputs={
                     "section_name": "Abstract",
                     "section_text": self.state.abstract,
-                    "review_text": final_review_dict.get("Abstract", "")
+                    "review_text": self.state.final_revision_report #final_review_dict.get("Abstract", "")
                     }
                 )
             self.state.abstract = self._extract_raw_output(new_abstract_result)
         for section in self.state.structure:
-            if final_review_dict.get(section, "") != "":
+            # if final_review_dict.get(section, "") != "":
+            if section in self.state.final_revision_report:
                 new_section_result = section_modifier_crew.kickoff(
                     inputs={
                         "section_name": section,
                         "section_text": self.state.paragraphs[section],
-                        "review_text": final_review_dict.get(section, "")
+                        "review_text": self.state.final_revision_report # final_review_dict.get(section, "")
                         }
                     )
                 self.state.paragraphs[section] = self._extract_raw_output(new_section_result)
