@@ -11,9 +11,10 @@ class EditingCrew:
     def __init__(self, 
                  state: ArticleState,
                  agent_yaml_path: str = os.path.join(config_dir, "agents.yaml"),
-                 task_yaml_path: str = os.path.join(config_dir, "tasks.yaml")
+                 task_yaml_path: str = os.path.join(config_dir, "tasks.yaml"),
+                 agent_registry: dict | None = None
                  ) -> ArticleState:
-        self.agents = build_agents_from_yaml(agent_yaml_path)
+        self.agents = build_agents_from_yaml(agent_yaml_path, agent_registry=agent_registry)
         self.tasks = build_tasks_from_yaml(task_yaml_path, self.agents)
         self.state = state
         self.flow = None

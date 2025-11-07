@@ -80,7 +80,7 @@ class MarkdownUtils:
 
         if write_output:   
             # Gestione nome file
-            filename = os.path.join(output_path, f"{title.lower().replace(' ', '_').replace('/', '-')}.md") if output_path is not None else f"{title.lower().replace(' ', '_').replace('/', '-')}.md"
+            filename = output_path if output_path is not None else f"{title.lower().replace(' ', '_').replace('/', '-')}.md"
             with open(filename, "w", encoding="utf-8") as f:
                 f.write(md_text)
 
