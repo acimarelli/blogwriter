@@ -1,9 +1,9 @@
 from crewai import Agent, Task, Crew, Process
-from llm.ollama_llm_tool import OllamaLLMTool
+from llm.local_llm_tool import LocalLLMTool
 
 
 def summarize_section(section: str, content: str, model_name: str = 'ollama/phi4') -> str:
-    llm = OllamaLLMTool(model=model_name)
+    llm = LocalLLMTool(model=model_name)
 
     summarizer = Agent(
         role="Article Summarizer",

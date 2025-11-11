@@ -11,22 +11,22 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.append(str(ROOT_DIR))
 
-from llm.ollama_llm_tool import OllamaLLMTool
+from llm.local_llm_tool import LocalLLMTool
 
 DEFAULT_AGENT_REGISTRY = {
-    "local_chatollama": OllamaLLMTool(model='ollama/gpt-oss:20b',
+    "local_chatollama": LocalLLMTool(model='ollama/gpt-oss:20b',
                                       temperature=0.7,
                                       top_p=0.9,
                                       top_k=60,
                                       repeat_penalty=1.1,
                                       num_ctx=4096),
-    "code_llm": OllamaLLMTool(model='ollama/deepseek-coder:33b',
+    "code_llm": LocalLLMTool(model='ollama/deepseek-coder:33b',
                               temperature=0.2,
                               top_p=0.8,
                               top_k=50,
                               repeat_penalty=1.1,
                               num_ctx=4096),
-    "code_comment_llm": OllamaLLMTool(model='ollama/gemma3:27b',
+    "code_comment_llm": LocalLLMTool(model='ollama/gemma3:27b',
                                       temperature=0.4,
                                       top_p=0.9,
                                       top_k=50,

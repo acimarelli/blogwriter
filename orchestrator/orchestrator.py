@@ -9,7 +9,7 @@ from typing import Dict, List, Optional
 from crews.input_validator.crew import InputValidatorCrew
 from crews.writing.crew import WritingCrew
 from crews.editing.crew import EditingCrew
-from llm.ollama_llm_tool import OllamaLLMTool
+from llm.local_llm_tool import LocalLLMTool
 
 
 # ---------- Config & Helpers ----------
@@ -33,12 +33,12 @@ def _slugify(text: str, max_len: int = 80) -> str:
     return slug[:max_len] if max_len else slug
 
 
-def build_default_agent_registry() -> Dict[str, OllamaLLMTool]:
+def build_default_agent_registry() -> Dict[str, LocalLLMTool]:
     """
-    Registry minimale con modelli locali Ollama. Personalizza a piacere.
+    Registry minimale con modelli locali. Personalizza a piacere.
     """
     return {
-        "local_chatollama": OllamaLLMTool(
+        "local_chatollama": LocalLLMTool(
             model="ollama/gpt-oss:20b",
             temperature=0.7,
             top_p=0.9,
@@ -46,7 +46,7 @@ def build_default_agent_registry() -> Dict[str, OllamaLLMTool]:
             repeat_penalty=1.1,
             num_ctx=4096,
         ),
-        "code_llm": OllamaLLMTool(
+        "code_llm": LocalLLMTool(
             model="ollama/deepseek-coder:33b",
             temperature=0.2,
             top_p=0.8,
@@ -54,8 +54,8 @@ def build_default_agent_registry() -> Dict[str, OllamaLLMTool]:
             repeat_penalty=1.1,
             num_ctx=4096,
         ),
-        "code_comment_llm": OllamaLLMTool(
-            model="ollama/gemma3:27b",
+        "code_comment_llm": LocalLLMTool(
+            model="ollama/deepseek-coder:33b",
             temperature=0.4,
             top_p=0.9,
             top_k=50,

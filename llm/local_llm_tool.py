@@ -4,11 +4,24 @@ from langchain_community.llms import Ollama
 from langchain_core.messages import HumanMessage
 from crewai import LLM
 from typing import List, Dict, Any
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline, logging
 
-class OllamaLLMTool:
+logging.set_verbosity_info()
+
+class Output:
+    """Uniform wrapper per l'output, compatibile con CrewAI (.raw)."""
+    def __init__(self, raw_text: str):
+        self.raw = raw_text
+
+    def __repr__(self):
+        return f"Output(raw={self.raw!r})"
+    
+
+class LocalLLMTool:
     def __init__(
         self,
         model: str,
+        backend: str = "ollama",  # "ollama" | "huggingface"
         temperature: float = 0.5,
         top_p: float = 0.95,
         top_k: int = 40,
@@ -22,6 +35,8 @@ class OllamaLLMTool:
         ----------
         model : str
             Identifier of the model to use.
+        backend : str
+            ollama | huggingface
         temperature : float, optional
             Sampling temperature in the range ``0.0``‑``1.0``. Lower values make
             outputs more deterministic, while higher values increase creativity
@@ -51,16 +66,50 @@ class OllamaLLMTool:
         """
 
         self.model = model
-        self.llm = LLM(
-            model=self.model,
-            base_url=base_url,
-            temperature=temperature,
-            top_p=top_p,
-            top_k=top_k,
-            repeat_penalty=repeat_penalty,
-            num_ctx=num_ctx,
-            stream=False,
-        )
+        self.backend = backend.lower()
+
+        if self.backend == "ollama":
+            # --- Ollama backend ---
+            self.llm = LLM(
+                model=self.model,
+                base_url=base_url,
+                temperature=temperature,
+                top_p=top_p,
+                top_k=top_k,
+                repeat_penalty=repeat_penalty,
+                num_ctx=num_ctx,
+                stream=False,
+            )
+        
+        elif self.backend == "huggingface":
+            # --- Hugging Face backend ---
+            print(f"Loading Hugging Face model '{model}' locally...")
+            self.tokenizer = AutoTokenizer.from_pretrained(model)
+            self.model_hf = AutoModelForCausalLM.from_pretrained(
+                model,
+                device_map="auto",
+                dtype="auto"
+            )
+            self.pipe = pipeline(
+                "text-generation",
+                model=self.model_hf,
+                tokenizer=self.tokenizer,
+                temperature=temperature,
+                top_p=top_p,
+                top_k=top_k,
+                repetition_penalty=repeat_penalty
+            )
 
     def run(self, prompt: str) -> str:
-        return self.llm.call(prompt)
+        """Run inference and return unified Output object."""
+        if self.backend == "ollama":
+            return self.llm.call(prompt)
+        
+        elif self.backend == "huggingface":
+            outputs = self.pipe(prompt)
+            raw_text = outputs[0]["generated_text"]
+            return Output(raw_text=raw_text)
+        
+        else:
+            raise RuntimeError("Invalid backend configuration.")
+        

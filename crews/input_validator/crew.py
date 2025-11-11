@@ -4,7 +4,7 @@ from crews.input_validator.flow import InputValidatorFlow
 from schema.state import ArticleState
 from utils.config_loader import build_agents_from_yaml, build_tasks_from_yaml
 from pathlib import Path
-from llm.ollama_llm_tool import OllamaLLMTool
+from llm.local_llm_tool import LocalLLMTool
 
 # Load agent and task registry from YAML
 config_dir = Path(__file__).parent
