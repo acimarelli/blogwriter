@@ -62,11 +62,17 @@ else:
 
 
 if st.session_state.get("current_file"):
-    st.text_area(
-        "Contenuto del file",
-        height=600,
-        key="editor_content",
-    )
+    tab_preview, tab_edit = st.tabs(["Anteprima", "Modifica"])
+
+    with tab_preview:
+        st.markdown(st.session_state["editor_content"] or "_(File vuoto)_")
+
+    with tab_edit:
+        st.text_area(
+            "Contenuto del file",
+            height=600,
+            key="editor_content",
+        )
 
     file_path = MARKDOWN_DIR / st.session_state["current_file"]
 
