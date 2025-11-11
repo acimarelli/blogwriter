@@ -83,7 +83,6 @@ Flag utili:
 - `--no_plot_flows`: disabilita l'esportazione dei diagrammi Graphviz.
 - `--log_level`: livello di logging (DEBUG/INFO/WARNING/ERROR).
 
-## Notebook di validazione
 In alternativa puoi richiamare `blogwriter_orchestrator` dal tuo codice Python per integrare BlogWriter in pipeline personalizzate.
 
 ## Notebook di verifica
@@ -95,10 +94,7 @@ I log sono gestiti da `utils.logger`:
 - `summarize_log_metrics` fornisce statistiche (conteggio livelli, durata, messaggi più frequenti, transizioni) salvate nello stato finale dei flow.
 
 ## Dashboard sperimentali
-La cartella `dashboards/` contiene bozze Streamlit (`streamlit_audit.py`, `streamlit_editor.py`) pensate per ispezionare log e revisioni. Richiedono alcune utility (`FlowLogger`, `flow_plotter`) non ancora incluse nella repository.
-
-## Test
-La cartella `tests/` contiene placeholder da popolare; si consiglia di aggiungere unit test per i parser dei flow e per il logger, sfruttando l'infrastruttura Poetry (`poetry run pytest`).
+La cartella `dashboards/` contiene `streamlit_editor.py` pensate per ispezionare e revisionare il documento. 
 
 ## Contributi
 1. Effettua il fork e crea un branch dedicato.
