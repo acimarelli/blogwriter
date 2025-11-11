@@ -1,104 +1,107 @@
 # BlogWriter
 
-BlogWriter è un framework modulare basato su [CrewAI](https://github.com/joaomdmoura/crewai) pensato per produrre articoli tecnici partendo da titolo, abstract e scaletta, orchestrando fasi di validazione, scrittura, generazione di codice ed editing finale.
+BlogWriter è un framework modulare basato su [CrewAI](https://github.com/joaomdmoura/crewai) pensato per trasformare titolo, abstract e scaletta in articoli tecnici completi. La libreria orchestra squadre di agenti per validazione, scrittura, generazione di codice e revisione editoriale, esponendo sia flow asincroni sia una CLI end-to-end.
 
 ## Caratteristiche principali
-- **Validazione dell'input**: un flow asincrono verifica e arricchisce titolo, abstract e struttura tramite agenti dedicati, con parsing sicuro della scaletta e metriche di logging automatiche.
-- **Scrittura sezione per sezione**: la crew di writing produce paragrafi coerenti, riassunti, eventuali istruzioni per il codice e richiede snippet Python solo quando necessari.
-- **Generazione e revisione del codice**: per ogni sezione che lo richiede, un agente sviluppatore crea il codice mentre un revisore lo migliora prima dell'inclusione nell'articolo.
-- **Editing e supervisione finale**: il flow di editing assemblea l'articolo in Markdown, sostituisce i placeholder del codice e, se configurato, avvia una revisione editoriale automatica.
-- **Configurazione da YAML**: agenti, task e LLM sono definiti tramite file YAML e un registry centralizzato che semplifica l'estensione del sistema.
-- **Metriche e logging avanzati**: un logger personalizzato evita duplicati, persiste i log su file e calcola statistiche riepilogative utili per il monitoraggio dei flow.
+- **Pipeline completa**: esecuzione in sequenza dei flow di validazione, scrittura ed editing con stato condiviso (`ArticleState`).
+- **Agenti configurabili da YAML**: agenti, task e tool sono caricati dinamicamente tramite `utils.config_loader`, con registry LLM preconfigurato per modelli Ollama.
+- **Scrittura contestuale**: ogni sezione viene generata insieme al relativo riassunto e alle istruzioni opzionali per il codice, mantenendo coerenza lungo tutto l'articolo.
+- **Generazione e revisione del codice**: quando il writer inserisce il marker `[CODICE_RICHIESTO][START] … [END]`, partono automaticamente le crew di sviluppo e code review.
+- **Editing multi-review**: l'`EditingFlow` esegue più passaggi di supervisione, consolida i feedback e applica le revisioni prima di produrre il Markdown finale.
+- **Logging con metriche**: il logger `NonRepetitiveLogger` salva log deduplicati (anche su file rotanti) e `summarize_log_metrics` produce statistiche utili al termine di ogni flow.
 
 ## Architettura della repository
 ```
 blogwriter/
-├── crews/                # Definizioni di crew e flow (validazione, scrittura, editing)
+├── crews/                # Definizioni di agenti, task e flow (input_validator, writing, editing)
 ├── dashboards/           # Bozze di dashboard Streamlit per audit e revisione
-├── llm/                  # Wrapper verso modelli Ollama utilizzati dagli agenti
-├── notebooks/            # Notebook Jupyter di test end-to-end dei flow
-├── orchestrator/         # Orchestratore CLI per concatenare i flow principali
-├── schema/               # Pydantic model dello stato condiviso fra i flow
-├── utils/                # Loader di configurazioni, logger e utility LLM
-├── tests/                # Segnaposto per test automatici (da completare)
-└── pyproject.toml        # Gestione dipendenze tramite Poetry
+├── llm/                  # Wrapper per modelli Ollama usati dagli agenti
+├── notebooks/            # Notebook di validazione end-to-end
+├── orchestrator/         # Orchestratore asincrono e CLI
+├── schema/               # Modelli Pydantic dello stato condiviso
+├── utils/                # Loader YAML, logger avanzato, utility Markdown e riassunti
+├── Makefile              # Shortcut per lint/test (da completare)
+├── pyproject.toml        # Gestione dipendenze tramite Poetry
+└── README.md
 ```
 
 ## Requisiti
 - Python 3.10 – 3.12
 - [Poetry](https://python-poetry.org/) per la gestione delle dipendenze
-- Un server [Ollama](https://ollama.com/) raggiungibile (default `http://localhost:11434`) con i modelli indicati nel registry (`ollama/gpt-oss:20b`, `ollama/deepseek-coder:33b`, `ollama/gemma3:27b`, `ollama/phi4`).
+- Server [Ollama](https://ollama.com/) raggiungibile (default `http://localhost:11434`) con i modelli referenziati (`ollama/gpt-oss:20b`, `ollama/deepseek-coder:33b`, `ollama/gemma3:27b`, `ollama/phi4`).
+
+Installazione delle dipendenze:
 
 ```bash
 poetry install
 ```
 
-Per esecuzioni headless è consigliato disabilitare la telemetria di CrewAI e di eventuali proxy, come fatto nel notebook dimostrativo.
+## Configurazione degli LLM
+Il registry di default è definito sia nell'orchestratore (`orchestrator.orchestrator.build_default_agent_registry`) sia in `utils.config_loader.DEFAULT_AGENT_REGISTRY`. Puoi:
 
-## Flussi disponibili
-### 1. InputValidatorFlow
-- Richiede titolo, abstract facoltativo e struttura (lista di sezioni).
-- Se l'abstract manca viene generato, altrimenti migliorato.
-- La struttura proposta dagli utenti viene analizzata, ampliata o ricostruita usando un agente project manager.
-- Al termine salva un riepilogo dei log nel campo `log_summary` dello stato finale.
+1. Sovrascrivere i parametri dei modelli passando un `agent_registry` personalizzato alle crew o alla funzione `blogwriter_orchestrator`.
+2. Aggiungere nuovi tool implementando classi in `blogwriter.tools.*` e richiamandole dagli YAML degli agenti.
 
-### 2. WritingArticleFlow
-- Elabora lo stato validato, ciclando sulle sezioni finché tutte sono complete.
-- Per ogni sezione salva paragrafo, riassunto sintetico e istruzioni per il codice.
-- Attiva automaticamente le crew di code generation e code review se è stato segnalato il marker `[CODICE_RICHIESTO]`.
-- Raccoglie log e metriche al termine dell'ultima sezione.
+## Flow disponibili
+### InputValidatorFlow
+- Verifica che il titolo sia valorizzato, generando input interattivo se manca.
+- Produce o migliora l'abstract tramite l'agente `abstract_writer`.
+- Analizza la struttura proposta con l'agente `project_manager`, usando un parser sicuro (`safe_literal_list_parse`).
+- Genera un riepilogo delle metriche di log nel campo `log_summary`.
 
-### 3. EditingFlow
-- Riceve titolo, abstract, paragrafi, snippet di codice e struttura.
-- Costruisce l'articolo finale in Markdown sostituendo i placeholder del codice.
-- Se configurato, lancia una supervisione editoriale e registra un report dedicato.
-- Persiste le metriche del logger su file se disponibile un `RotatingFileHandler`.
+### WritingArticleFlow
+- Cicla sulle sezioni dello stato condiviso generando paragrafi coerenti e riassunti sintetici (`utils.context_summarizer_crew.summarize_section`).
+- Estrae eventuali richieste di codice dal testo e invoca automaticamente gli agenti `code_writer` e `code_reviewer`.
+- Aggiorna mappe di paragrafi, riassunti, istruzioni e snippet all'interno dell'`ArticleState`.
+
+### EditingFlow
+- Crea il Markdown originale e avvia una supervisione iterativa (`num_reviews`) con l'agente `supervisor`.
+- Consolida i feedback multipli con `review_consolidator` e applica le modifiche via `editor_profile`.
+- Rigenera il Markdown finale tramite `utils.markdown_utils.MarkdownUtils`, opzionalmente salvandolo su file.
+- Calcola statistiche sui log a fine processo.
 
 ## Orchestrazione end-to-end
-L'orchestratore CLI concatena validazione e scrittura, generando anche i diagrammi dei flow in `orchestrator/flow_chart/`.
+L'orchestratore asincrono collega i tre flow in sequenza, gestendo diagrammi dei flow (`orchestrator/flow_chart/`) e la scrittura opzionale del Markdown.
+
+Esecuzione da CLI:
 
 ```bash
-poetry run python -m orchestrator.orchestrator --title "Titolo" \
+poetry run python -m orchestrator.orchestrator \
+    --title "Titolo" \
     --abstract "Abstract opzionale" \
-    --structure Introduzione Corpo Conclusioni
+    --structure Introduzione "Metodologia & Dati" Conclusioni \
+    --num_reviews 5 \
+    --write_output \
+    --markdown_outpath ./outputs/articolo.md \
+    --log_level DEBUG
 ```
 
-Per includere la fase di editing è possibile importare direttamente le crew nei propri script Python, come mostrato nel notebook `notebooks/check_components.ipynb` che testa in sequenza i tre flow.
+Flag utili:
+- `--num_reviews`: numero di cicli di supervisione (>=1, default 10).
+- `--write_output`: salva il Markdown finale (default disattivato).
+- `--markdown_outpath`: percorso personalizzato del file Markdown.
+- `--no_plot_flows`: disabilita l'esportazione dei diagrammi Graphviz.
+- `--log_level`: livello di logging (DEBUG/INFO/WARNING/ERROR).
 
 ## Notebook di validazione
-Il notebook `notebooks/check_components.ipynb` disattiva la telemetria, istanzia le tre crew (validazione, scrittura, editing) e ne verifica il comportamento asincrono producendo come output lo stato finale dell'articolo completo.
+In alternativa puoi richiamare `blogwriter_orchestrator` dal tuo codice Python per integrare BlogWriter in pipeline personalizzate.
 
-Esempio di uso programmatico (estratto dal notebook):
-
-```python
-state = await InputValidatorCrew().kickoff(title="Titolo", abstract="", structure=[...])
-state2 = await WritingCrew().kickoff(title=state.title, abstract=state.abstract, structure=state.structure)
-state3 = await EditingCrew().kickoff(
-    title=state2.title,
-    abstract=state2.abstract,
-    structure=state2.structure,
-    paragraphs=state2.paragraphs,
-    code_snippets=state2.code_snippets,
-)
-```
-
-## Personalizzazione degli agenti
-- Gli agenti e i task sono definiti rispettivamente in `crews/*/agents.yaml` e `crews/*/tasks.yaml`.
-- `utils/config_loader.build_agents_from_yaml` carica dinamicamente i tool, associa gli LLM dal registry e permette di sostituire facilmente i modelli fornendo un `agent_registry` personalizzato.
-- I task di writing codificano le convenzioni sul marker `[CODICE_RICHIESTO]`, mentre quelli di editing gestiscono l'assemblaggio Markdown e la supervisione.
+## Notebook di verifica
+`notebooks/check_components.ipynb` mostra come instanziare le crew, disabilitare la telemetria di CrewAI e verificare l'intera pipeline in modalità asincrona.
 
 ## Logging e metriche
-- Il logger `NonRepetitiveLogger` evita duplicati e può scrivere su file rotanti in `logs/`.
-- `summarize_log_metrics` analizza i log generando statistiche (conteggio livelli, durata, top messaggi) che vengono salvate nello stato dei flow al termine dell'esecuzione.
+I log sono gestiti da `utils.logger`:
+- `get_logger` crea logger con RichHandler su console e RotatingFileHandler in `logs/` (creata automaticamente).
+- `summarize_log_metrics` fornisce statistiche (conteggio livelli, durata, messaggi più frequenti, transizioni) salvate nello stato finale dei flow.
 
 ## Dashboard sperimentali
-Sono presenti due app Streamlit (`dashboards/streamlit_audit.py` e `dashboards/streamlit_editor.py`) che fungeranno da interfaccia per esplorare log e revisioni. Richiedono ulteriori utility (`blogwriter.utils.flow_plotter`, `FlowLogger`) non ancora incluse nella repo corrente e vanno considerate work-in-progress.
+La cartella `dashboards/` contiene bozze Streamlit (`streamlit_audit.py`, `streamlit_editor.py`) pensate per ispezionare log e revisioni. Richiedono alcune utility (`FlowLogger`, `flow_plotter`) non ancora incluse nella repository.
 
 ## Test
 La cartella `tests/` contiene placeholder da popolare; si consiglia di aggiungere unit test per i parser dei flow e per il logger, sfruttando l'infrastruttura Poetry (`poetry run pytest`).
 
 ## Contributi
-1. Fork del progetto e creazione di un branch dedicato.
-2. Installazione delle dipendenze con Poetry.
-3. Aggiunta o modifica di agenti/task aggiornando i rispettivi file YAML.
-4. Apertura di una Pull Request descrivendo le modifiche e l'impatto sui flow.
+1. Effettua il fork e crea un branch dedicato.
+2. Installa le dipendenze con Poetry.
+3. Aggiorna agenti/task modificando i rispettivi file YAML e, se serve, il registry LLM.
+4. Apri una Pull Request descrivendo modifiche, impatto sui flow e requisiti per l'esecuzione.
