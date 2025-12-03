@@ -3,6 +3,7 @@ name = "blogwriter"
 version = "0.1.0"
 description = "Framework modulare per la generazione automatizzata di articoli scientifici tramite CrewAI."
 authors = ["acimarelli <alessandro.cimarelli@icloud.com>"]
+package-mode = false
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.13"
@@ -20,6 +21,7 @@ langchain-ollama = "^0.3.3"
 pydantic = "^2.7"
 streamlit = "^1.35.0"
 graphviz = "^0.20.3"
+litellm = "1.68.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.2.1"

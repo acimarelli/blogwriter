@@ -6,11 +6,11 @@ from crewai import LLM
 
 logger = logging.getLogger(__name__)
 
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
-from transformers import logging as hf_logging
+# from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+# from transformers import logging as hf_logging
 from crewai.llms.base_llm import BaseLLM
 
-hf_logging.set_verbosity_error()
+# hf_logging.set_verbosity_error()
 
 
 @dataclass
@@ -144,45 +144,46 @@ class LocalLLMTool:
                 stream=False,
             )
         else:
-            # --- Hugging Face backend ---
-            logger.info("Caricamento del modello Hugging Face '%s'...", self.model)
+            # # --- Hugging Face backend ---
+            # logger.info("Caricamento del modello Hugging Face '%s'...", self.model)
 
-            tokenizer = AutoTokenizer.from_pretrained(
-                self.model,
-                padding_side="left",
-                trust_remote_code=trust_remote_code,
-            )
-            if tokenizer.pad_token_id is None and tokenizer.eos_token_id is not None:
-                tokenizer.pad_token = tokenizer.eos_token
-            model_hf = AutoModelForCausalLM.from_pretrained(self.model)
+            # tokenizer = AutoTokenizer.from_pretrained(
+            #     self.model,
+            #     padding_side="left",
+            #     trust_remote_code=trust_remote_code,
+            # )
+            # if tokenizer.pad_token_id is None and tokenizer.eos_token_id is not None:
+            #     tokenizer.pad_token = tokenizer.eos_token
+            # model_hf = AutoModelForCausalLM.from_pretrained(self.model)
 
-            model_hf = AutoModelForCausalLM.from_pretrained(
-                self.model,
-                trust_remote_code=trust_remote_code,
-            )
+            # model_hf = AutoModelForCausalLM.from_pretrained(
+            #     self.model,
+            #     trust_remote_code=trust_remote_code,
+            # )
 
-            pipeline_kwargs: dict[str, Any] = {
-                "temperature": temperature,
-                "top_p": top_p,
-                "top_k": top_k,
-                "repetition_penalty": repeat_penalty,
-                "return_full_text": False,
-            }
-            if hf_device is not None:
-                pipeline_kwargs["device"] = hf_device
+            # pipeline_kwargs: dict[str, Any] = {
+            #     "temperature": temperature,
+            #     "top_p": top_p,
+            #     "top_k": top_k,
+            #     "repetition_penalty": repeat_penalty,
+            #     "return_full_text": False,
+            # }
+            # if hf_device is not None:
+            #     pipeline_kwargs["device"] = hf_device
 
-            generation_pipeline = pipeline(
-                "text-generation",
-                model=model_hf,
-                tokenizer=tokenizer,
-                **pipeline_kwargs,
-            )
+            # generation_pipeline = pipeline(
+            #     "text-generation",
+            #     model=model_hf,
+            #     tokenizer=tokenizer,
+            #     **pipeline_kwargs,
+            # )
 
-            self.llm = _HuggingFaceLLMAdapter(
-                model_name=self.model,
-                text_generation_pipeline=generation_pipeline,
-                temperature=temperature,
-            )
+            # self.llm = _HuggingFaceLLMAdapter(
+            #     model_name=self.model,
+            #     text_generation_pipeline=generation_pipeline,
+            #     temperature=temperature,
+            # )
+            pass
         
     def run(self, prompt: Any) -> Output:
         """Esegue il modello e restituisce sempre un :class:`Output`."""
