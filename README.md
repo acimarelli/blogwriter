@@ -42,23 +42,29 @@ Il registry di default è definito sia nell'orchestratore (`orchestrator.orchest
 1. Sovrascrivere i parametri dei modelli passando un `agent_registry` personalizzato alle crew o alla funzione `blogwriter_orchestrator`.
 2. Aggiungere nuovi tool implementando classi in `blogwriter.tools.*` e richiamandole dagli YAML degli agenti.
 
-## Flow disponibili
-### InputValidatorFlow
+## Flows Architecture
+### 1. InputValidatorFlow
 - Verifica che il titolo sia valorizzato, generando input interattivo se manca.
 - Produce o migliora l'abstract tramite l'agente `abstract_writer`.
 - Analizza la struttura proposta con l'agente `project_manager`, usando un parser sicuro (`safe_literal_list_parse`).
 - Genera un riepilogo delle metriche di log nel campo `log_summary`.
 
-### WritingArticleFlow
+![InputValidatorFlow](doc/img/input_validator_flow.png)
+
+### 2. WritingArticleFlow
 - Cicla sulle sezioni dello stato condiviso generando paragrafi coerenti e riassunti sintetici (`utils.context_summarizer_crew.summarize_section`).
 - Estrae eventuali richieste di codice dal testo e invoca automaticamente gli agenti `code_writer` e `code_reviewer`.
 - Aggiorna mappe di paragrafi, riassunti, istruzioni e snippet all'interno dell'`ArticleState`.
 
-### EditingFlow
+![WritingFlow](doc/img/writing_flow.png)
+
+### 3. EditingFlow
 - Crea il Markdown originale e avvia una supervisione iterativa (`num_reviews`) con l'agente `supervisor`.
 - Consolida i feedback multipli con `review_consolidator` e applica le modifiche via `editor_profile`.
 - Rigenera il Markdown finale tramite `utils.markdown_utils.MarkdownUtils`, opzionalmente salvandolo su file.
 - Calcola statistiche sui log a fine processo.
+
+![EditingFlow](doc/img/editing_flow.png)
 
 ## Orchestrazione end-to-end
 L'orchestratore asincrono collega i tre flow in sequenza, gestendo diagrammi dei flow (`orchestrator/flow_chart/`) e la scrittura opzionale del Markdown.
