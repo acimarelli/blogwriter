@@ -39,71 +39,71 @@ def _normalize_content(content: Any) -> str:
     return str(content)
 
 
-class _HuggingFaceLLMAdapter(BaseLLM):
-    """Adattatore ``BaseLLM`` che incapsula una pipeline ``transformers``."""
+# class _HuggingFaceLLMAdapter(BaseLLM):
+#     """Adattatore ``BaseLLM`` che incapsula una pipeline ``transformers``."""
 
-    def __init__(
-        self,
-        model_name: str,
-        text_generation_pipeline,
-        # max_new_tokens: int,
-        temperature: float | None = None,
-    ) -> None:
-        super().__init__(model=model_name, temperature=temperature)
-        self._pipeline = text_generation_pipeline
+#     def __init__(
+#         self,
+#         model_name: str,
+#         text_generation_pipeline,
+#         # max_new_tokens: int,
+#         temperature: float | None = None,
+#     ) -> None:
+#         super().__init__(model=model_name, temperature=temperature)
+#         self._pipeline = text_generation_pipeline
 
-    def _messages_to_prompt(self, messages: Sequence[Any]) -> str:
-        prompt_lines: List[str] = []
-        for message in messages:
-            role = "user"
-            content = ""
-            if isinstance(message, Mapping):
-                role = str(message.get("role", role))
-                content = _normalize_content(message.get("content"))
-            else:
-                role = str(getattr(message, "role", getattr(message, "type", role)))
-                content = _normalize_content(getattr(message, "content", message))
+#     def _messages_to_prompt(self, messages: Sequence[Any]) -> str:
+#         prompt_lines: List[str] = []
+#         for message in messages:
+#             role = "user"
+#             content = ""
+#             if isinstance(message, Mapping):
+#                 role = str(message.get("role", role))
+#                 content = _normalize_content(message.get("content"))
+#             else:
+#                 role = str(getattr(message, "role", getattr(message, "type", role)))
+#                 content = _normalize_content(getattr(message, "content", message))
 
-            role = role.upper() if role else "USER"
-            prompt_lines.append(f"{role}: {content}")
+#             role = role.upper() if role else "USER"
+#             prompt_lines.append(f"{role}: {content}")
 
-        if prompt_lines and not prompt_lines[-1].startswith("ASSISTANT:"):
-            prompt_lines.append("ASSISTANT:")
+#         if prompt_lines and not prompt_lines[-1].startswith("ASSISTANT:"):
+#             prompt_lines.append("ASSISTANT:")
         
-        return "\n".join(prompt_lines)
+#         return "\n".join(prompt_lines)
 
-    def _coerce_prompt(self, messages: Any) -> str:
-        if isinstance(messages, str):
-            return messages
-        if isinstance(messages, Iterable):
-            return self._messages_to_prompt(list(messages))
-        return str(messages)
+#     def _coerce_prompt(self, messages: Any) -> str:
+#         if isinstance(messages, str):
+#             return messages
+#         if isinstance(messages, Iterable):
+#             return self._messages_to_prompt(list(messages))
+#         return str(messages)
     
-    def call(
-        self,
-        messages: Any,
-        tools: list[dict[str, Any]] | None = None,
-        callbacks: list[Any] | None = None,
-        available_functions: Mapping[str, Any] | None = None,
-    ) -> str:
-        prompt = self._coerce_prompt(messages)
-        if not prompt:
-            raise ValueError("Prompt vuoto passato al modello Hugging Face.")
+#     def call(
+#         self,
+#         messages: Any,
+#         tools: list[dict[str, Any]] | None = None,
+#         callbacks: list[Any] | None = None,
+#         available_functions: Mapping[str, Any] | None = None,
+#     ) -> str:
+#         prompt = self._coerce_prompt(messages)
+#         if not prompt:
+#             raise ValueError("Prompt vuoto passato al modello Hugging Face.")
 
-        generations = self._pipeline(
-            prompt,
-            # max_new_tokens=self._max_new_tokens,
-            pad_token_id=self._pipeline.tokenizer.eos_token_id,
-            return_full_text=False,
-        )
-        if not generations:
-            raise RuntimeError("La pipeline Hugging Face non ha prodotto output.")
-        candidate = generations[0]
-        if isinstance(candidate, MutableMapping):
-            text = candidate.get("generated_text") or candidate.get("summary_text")
-            if text is not None:
-                return text.strip()
-        return _normalize_content(candidate).strip()
+#         generations = self._pipeline(
+#             prompt,
+#             # max_new_tokens=self._max_new_tokens,
+#             pad_token_id=self._pipeline.tokenizer.eos_token_id,
+#             return_full_text=False,
+#         )
+#         if not generations:
+#             raise RuntimeError("La pipeline Hugging Face non ha prodotto output.")
+#         candidate = generations[0]
+#         if isinstance(candidate, MutableMapping):
+#             text = candidate.get("generated_text") or candidate.get("summary_text")
+#             if text is not None:
+#                 return text.strip()
+#         return _normalize_content(candidate).strip()
 
 
 class LocalLLMTool:
@@ -183,7 +183,7 @@ class LocalLLMTool:
             #     text_generation_pipeline=generation_pipeline,
             #     temperature=temperature,
             # )
-            pass
+            raise ValueError("SORRY: HF NEED TO BE FIXED!!!")
         
     def run(self, prompt: Any) -> Output:
         """Esegue il modello e restituisce sempre un :class:`Output`."""
